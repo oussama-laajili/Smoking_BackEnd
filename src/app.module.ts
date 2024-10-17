@@ -8,6 +8,7 @@ import { CommunityModule } from './Community/Community.module';
 import { ChallengeModule } from './Challenge/Challenge.module';
 import { MailModule } from './Mail/Mail.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AuthModule } from './Auth/auth.module';
 
 
 @Module({
@@ -20,6 +21,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ArticleModule,
     CommunityModule,
     ChallengeModule,
+    AuthModule,
     MailModule
 
   ],

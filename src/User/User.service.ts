@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../Schema/User';
@@ -9,6 +9,8 @@ import { MailService } from 'src/Mail/Mail.service';
 import { Challenge, ChallengeDocument } from 'src/Schema/Challenge';
 import { Cron } from '@nestjs/schedule';
 import { Postt, PosttDocument } from 'src/Schema/Postt';
+import { generatePassword } from './util';
+
 
 @Injectable()
 export class UserService {
@@ -63,13 +65,20 @@ export class UserService {
     }
   }
 
-  async create(createUserDto: any): Promise<User> {
-    // Generate a random password
-    const rawPassword = Math.random().toString(36).slice(-8); // Example: generate an 8-character random password
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    // Check if the user already exists
+    const existingUser = await this.UserModel.findOne({ email: createUserDto.email }).exec();
+    if (existingUser) {
+        throw new ConflictException('Email already exists');
+    }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+    // Generate and hash the password
+    const password = generatePassword(8);
+    console.log('Generated password:', password);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Hashed password:', hashedPassword);
 
+    // Calculate the initial money based on cigarettes
     const compteurargent = createUserDto.nbcigaretteinitial * createUserDto.prixcig;
 
     // Calculate Challenge values
@@ -78,35 +87,38 @@ export class UserService {
 
     // Create a new Challenge instance
     const newChallenge = new this.challengeModel({
-      dateactuel: new Date(), // Current date
-      nbexpeccig: nbexpeccig,
-      timebtwcig: timebtwcig,
-      challengesucc: true,
-      nbcigsmoked: 0,
+        dateactuel: new Date(), // Current date
+        nbexpeccig: nbexpeccig,
+        timebtwcig: timebtwcig,
+        challengesucc: true,
+        nbcigsmoked: 0,
     });
 
     // Save the new Challenge instance
     await newChallenge.save();
 
-    // Create a new User instance
+    // Create a new User instance with all necessary fields
     const newUser = new this.UserModel({
-      ...createUserDto,
-      password: hashedPassword,
-      compteurcig: 0, // Initialize 'compteurcig' to 0
-      compteurpts: 100, // Initialize 'compteurpts' to 100
-      compteurargent, // Save the calculated argent value
-      challenges: [newChallenge._id], // Associate the created challenge with the user
-      totalcig: 0, // Initialize 'totalcig' to 0
+        ...createUserDto,
+        password: hashedPassword,
+        compteurcig: 0, // Initialize 'compteurcig' to 0
+        compteurpts: 100, // Initialize 'compteurpts' to 100
+        compteurargent: compteurargent, // Save the calculated argent value
+        challenges: [newChallenge._id], // Associate the created challenge with the user
+        totalcig: 0, // Initialize 'totalcig' to 0
     });
 
-    // Save the new User instance
-    const savedUser = await newUser.save();
+    // Save the new User instance to the database
+    await newUser.save();
+    console.log('User saved:', newUser);
 
-    // Send the password via email using MailService
-    await this.mailService.sendUserPassword(createUserDto.email, rawPassword);
+    // Send the email with the generated password
+    await this.mailService.sendUserPassword(createUserDto.email, password);
 
-    return savedUser;
-  }
+    // Return the newly created user
+    return newUser;
+}
+
 
   async findAll(): Promise<User[]> {
     return this.UserModel.find().exec();
@@ -319,6 +331,15 @@ async getLastChallenge(userId: string): Promise<Challenge | null> {
   const lastChallenge = user.challenges[user.challenges.length - 1];
 
   return lastChallenge;
+}
+async findByEmail(email: string): Promise<User> {
+  return this.UserModel.findOne({ email }).exec();
+}
+async deleteUserByEmail(email: string): Promise<void> {
+  const result = await this.UserModel.findOneAndDelete({ email }).exec();
+  if (!result) {
+    throw new NotFoundException(`User with email ${email} not found`);
+  }
 }
 
 
