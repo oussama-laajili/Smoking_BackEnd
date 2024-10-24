@@ -27,9 +27,11 @@ export class AuthController {
   @Get('profile')
   @UseGuards(AuthGuard('jwt'))
   async profile(@Req() req) {
-    if (!req.user) {
-        throw new UnauthorizedException('Invalid credentials');
-    }
-    return req.user;
+      console.log('User from JWT:', req.user); // Log the user retrieved from JWT
+      if (!req.user) {
+          throw new UnauthorizedException('Invalid credentials');
+      }
+      return req.user;
   }
+  
 }

@@ -45,7 +45,7 @@ export class UserService {
     for (const user of users) {
       // Calculate Challenge values
       const nbexpeccig = user.compteurcig - 2; // Adjust as needed
-      const timebtwcig = (nbexpeccig / 16) * 60; // Adjust as needed
+      const timebtwcig = Math.floor((16/nbexpeccig) * 60);
 
       // Create a new Challenge instance for each user
       const newChallenge = new this.challengeModel({
@@ -332,9 +332,11 @@ async getLastChallenge(userId: string): Promise<Challenge | null> {
 
   return lastChallenge;
 }
-async findByEmail(email: string): Promise<User> {
-  return this.UserModel.findOne({ email }).exec();
+async findByEmail(email: string): Promise<User | null> {
+  return await this.UserModel.findOne({ email }).lean(); // Use .lean() here
 }
+
+
 async deleteUserByEmail(email: string): Promise<void> {
   const result = await this.UserModel.findOneAndDelete({ email }).exec();
   if (!result) {

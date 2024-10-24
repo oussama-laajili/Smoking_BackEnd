@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, HttpCode, HttpStatus, BadRequestException, Patch, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, HttpCode, HttpStatus, BadRequestException, Patch, NotFoundException, Request } from '@nestjs/common';
 import { UserService } from './User.service';
 import { CreateUserDto } from './Dto/CreateUser.Dto';
 import { User } from '../Schema/User';
@@ -44,20 +44,33 @@ export class UserController {
     return { message: 'Password successfully reset' };
   }
 
-  @Post('increment-cig/:id')
-  async incrementTotalCig(@Param('id') id: string) {
-    const updatedUser = await this.userService.incrementTotalCig(id);
-
-    // If the user was not found, throw a NotFoundException
-    if (!updatedUser) {
-      throw new NotFoundException('User not found');
+  @Patch(':id/update-cigarette-stats')
+  async updateCigaretteStatsAndIncrement(@Param('id') userId: string): Promise<{ message: string; user: User }> {
+    try {
+      // Update cigarette stats
+      const updatedUser = await this.userService.updateCigaretteStats(userId);
+      
+      // Increment total cigarettes
+      const incrementedUser = await this.userService.incrementTotalCig(userId);
+      
+      // If the user was not found after the update, throw a NotFoundException
+      if (!incrementedUser) {
+        throw new NotFoundException('User not found');
+      }
+  
+      return {
+        message: 'Cigarette stats updated and total cigarettes incremented successfully',
+        user: incrementedUser,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error; // Re-throw NotFoundException for proper handling
+      }
+      // Handle other potential errors (e.g., database issues)
+      throw new Error('An error occurred while updating cigarette statistics and incrementing total cigarettes');
     }
-
-    return {
-      message: 'Total cigarettes incremented successfully',
-      user: updatedUser,
-    };
   }
+  
 
   @Post(':id/posts')
     async createPost(
@@ -82,6 +95,15 @@ export class UserController {
     }
   }
 
+  @Get(':email')
+  async getUserByEmail(@Param('email') email: string): Promise<User | null> {
+    const user = await this.userService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return user;
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string): Promise<User | null> {
     return this.userService.findById(id);
@@ -101,19 +123,7 @@ export class UserController {
   async delete(@Param('id') id: string): Promise<User | null> {
     return this.userService.delete(id);
   }
-  @Patch(':id/update-cigar-stats') // Define the route for updating cigarette stats
-  async updateCigaretteStats(@Param('id') userId: string): Promise<User> {
-    try {
-      const updatedUser = await this.userService.updateCigaretteStats(userId);
-      return updatedUser; // Return the updated user
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error; // Re-throw NotFoundException for proper handling
-      }
-      // Handle other potential errors (e.g., database issues)
-      throw new Error('An error occurred while updating cigarette statistics');
-    }
-  }
+  
   @Patch(':id/increment-cigarette')
   async incrementCigarettesSmoked(@Param('id') userId: string): Promise<Challenge> {
     // Call the service method to increment nbcigsmoked of the latest challenge
