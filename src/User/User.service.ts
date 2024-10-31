@@ -45,7 +45,7 @@ export class UserService {
     for (const user of users) {
       // Calculate Challenge values
       const nbexpeccig = user.compteurcig - 2; // Adjust as needed
-      const timebtwcig = Math.floor((16/nbexpeccig) * 60);
+      const timebtwcig = Math.floor((16 / nbexpeccig) * 60);
 
       // Create a new Challenge instance for each user
       const newChallenge = new this.challengeModel({
@@ -83,7 +83,7 @@ export class UserService {
 
     // Calculate Challenge values
     const nbexpeccig = createUserDto.nbcigaretteinitial - 2;
-    const timebtwcig = (nbexpeccig / 16) * 60;
+    const timebtwcig = Math.floor((16 / nbexpeccig) * 60);
 
     // Create a new Challenge instance
     const newChallenge = new this.challengeModel({
@@ -250,13 +250,13 @@ export class UserService {
 
     return post;
   }
-  async calculateAverageCigarettesSmoked(userId: string): Promise<number> {
-    // Find the user by ID
-    const user = await this.UserModel.findById(userId).exec();
+  async calculateAverageCigarettesSmoked(email: string): Promise<number> {
+    // Find the user by email
+    const user = await this.UserModel.findOne({ email }).exec();
 
     // If user is not found, throw an error
     if (!user) {
-      throw new NotFoundException('User not found');
+        throw new NotFoundException('User not found');
     }
 
     // Get the total number of cigarettes smoked
@@ -267,7 +267,7 @@ export class UserService {
 
     // If there are no challenges, return 0 to avoid division by zero
     if (numChallenges === 0) {
-      return 0;
+        return 0;
     }
 
     // Calculate the average cigarettes smoked
@@ -275,7 +275,8 @@ export class UserService {
 
     // Return the calculated average
     return averageCig;
-  }
+}
+
 
   async resetCigaretteAndPoints(): Promise<void> {
     // Update all users' compteurcig and compteurpts
@@ -336,13 +337,20 @@ async findByEmail(email: string): Promise<User | null> {
   return await this.UserModel.findOne({ email }).lean(); // Use .lean() here
 }
 
-
 async deleteUserByEmail(email: string): Promise<void> {
   const result = await this.UserModel.findOneAndDelete({ email }).exec();
   if (!result) {
     throw new NotFoundException(`User with email ${email} not found`);
   }
 }
+async getChallengesByEmail(email: string): Promise<Challenge[]> {
+  const user = await this.UserModel.findOne({ email }).populate('challenges').exec();
 
+  if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+  }
+
+  return user.challenges;
+}
 
 }

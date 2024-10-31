@@ -11,6 +11,8 @@ export class Article {
     @Prop({ required: true })
     text: string;
 
+    
+
     @Prop({ required: true })
     auteur: string;
 

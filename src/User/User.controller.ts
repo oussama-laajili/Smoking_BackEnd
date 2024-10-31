@@ -84,16 +84,17 @@ export class UserController {
   async findAll(): Promise<User[]> {
     return this.userService.findAll();
   }
-  @Get(':id/average-cigarettes')
-  async getAverageCigarettesSmoked(@Param('id') id: string): Promise<number> {
+  @Get(':email/average-cigarettes')
+  async getAverageCigarettesSmoked(@Param('email') email: string): Promise<number> {
     try {
-      // Call the service method to calculate the average
-      const averageCig = await this.userService.calculateAverageCigarettesSmoked(id);
+      // Call the service method to calculate the average using email
+      const averageCig = await this.userService.calculateAverageCigarettesSmoked(email);
       return averageCig;
     } catch (error) {
       throw new NotFoundException('User not found');
     }
   }
+  
 
   @Get(':email')
   async getUserByEmail(@Param('email') email: string): Promise<User | null> {
@@ -113,6 +114,10 @@ export class UserController {
   async getLastChallenge(@Param('userId') userId: string): Promise<Challenge | null> {
     return this.userService.getLastChallenge(userId);
   }
+  @Get(':email/challenges')
+    async getUserChallenges(@Param('email') email: string): Promise<Challenge[]> {
+        return this.userService.getChallengesByEmail(email);
+    }
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateUserDto: CreateUserDto): Promise<User | null> {

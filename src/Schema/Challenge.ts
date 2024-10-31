@@ -8,10 +8,10 @@ export class Challenge {
     @Prop({ default: Date.now })
     dateactuel: Date;
 
-    @Prop({ required: true })
+    @Prop({ required: true, min: 0 })  // Enforces non-negative values
     nbexpeccig: number;
 
-    @Prop({ required: true })
+    @Prop({ required: true, min: 0 })  // Enforces non-negative values
     nbcigsmoked: number;
 
     @Prop({ required: true })
@@ -19,8 +19,8 @@ export class Challenge {
 
     @Prop({ required: true })
     challengesucc: boolean;
-  _id: any;
     
+    _id: any;
 }
 
 export const ChallengeSchema = SchemaFactory.createForClass(Challenge);
