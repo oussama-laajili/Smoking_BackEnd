@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import { Challenge } from './Challenge';
 import { Postt } from './Postt';
 
@@ -62,6 +62,16 @@ export class User {
 
     @Prop({ required: false })
     totalcig: number;
+
+
+    @Prop({ required: false })
+    time_of_latest_cig: Date;
+
+    @Prop({ type: [SchemaTypes.Date], required: false })
+    time_for_all_cig: Date[];
+
+
 }
+
 
 export const UserSchema = SchemaFactory.createForClass(User);

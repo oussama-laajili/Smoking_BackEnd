@@ -11,7 +11,11 @@ export class Article {
     @Prop({ required: true })
     text: string;
 
-    
+    @Prop({ required: false })
+    picture: string;
+
+    @Prop({ default: 0 }) // Initialize vote to 0
+    vote: number;
 
     @Prop({ required: true })
     auteur: string;

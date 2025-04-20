@@ -57,7 +57,7 @@ export class UserController {
       if (!incrementedUser) {
         throw new NotFoundException('User not found');
       }
-  
+    
       return {
         message: 'Cigarette stats updated and total cigarettes incremented successfully',
         user: incrementedUser,
@@ -70,6 +70,58 @@ export class UserController {
       throw new Error('An error occurred while updating cigarette statistics and incrementing total cigarettes');
     }
   }
+
+
+
+
+
+  @Get(':userId/cigarette-stats-ia')
+  async getCigaretteStats(@Param('userId') userId: string) {
+    // Find the user by ID
+    const user = await this.userService.findById(userId);
+
+    // If user not found, throw an error
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Get the current date and time
+    const currentDate = new Date();
+
+    // Return the required data
+    return {
+      currentDateTime: currentDate,
+      timeOfLatestCig: user.time_of_latest_cig,
+      timeForAllCig: user.time_for_all_cig,
+    };
+  }
+
+
+
+
+  @Get(':id/predict-smoking')
+  async predictSmokingTime(@Param('id') userId: string) {
+    try {
+      const prediction = await this.userService.predictSmokingTime(userId);
+      return {
+        success: true,
+        data: prediction,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+      throw error; // Re-throw other errors
+    }
+  }
+
+
+
+
+
   
 
   @Post(':id/posts')

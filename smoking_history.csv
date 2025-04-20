@@ -1,0 +1,20 @@
+timestamp,cause,time_of_day,location,mood,activity,smoked_now
+2023-10-01 08:00:00,,morning,home,neutral,coffee,0
+2023-10-01 10:30:00,stress,morning,office,anxious,working,1
+2023-10-01 12:15:00,,afternoon,park,happy,walking,0
+2023-10-01 14:45:00,craving,afternoon,home,bored,watching_tv,1
+2023-10-01 17:00:00,,evening,car,tired,commuting,0
+2023-10-01 19:30:00,social,evening,bar,happy,socializing,1
+2023-10-01 21:00:00,,night,home,relaxed,reading,0
+2023-10-02 09:15:00,habit,morning,home,neutral,coffee,1
+2023-10-02 11:30:00,,morning,office,focused,working,0
+2023-10-02 13:45:00,stress,afternoon,office,anxious,meeting,1
+2023-10-02 16:00:00,,afternoon,park,calm,walking,0
+2023-10-02 18:20:00,boredom,evening,home,bored,watching_tv,1
+2023-10-02 20:00:00,,night,home,tired,reading,0
+2023-10-03 08:45:00,habit,morning,home,neutral,coffee,1
+2023-10-03 11:00:00,,morning,office,focused,working,0
+2023-10-03 14:30:00,craving,afternoon,home,bored,snacking,1
+2023-10-03 17:45:00,,evening,park,happy,walking,0
+2023-10-03 20:15:00,social,night,bar,happy,socializing,1
+2023-10-03 22:00:00,,night,home,relaxed,reading,0

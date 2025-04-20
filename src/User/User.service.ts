@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { MailService } from 'src/Mail/Mail.service';
 import { Challenge, ChallengeDocument } from 'src/Schema/Challenge';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Postt, PosttDocument } from 'src/Schema/Postt';
 import { generatePassword } from './util';
 
@@ -192,41 +192,54 @@ export class UserService {
   async updateCigaretteStats(userId: string): Promise<User | null> {
     // Find the user by ID
     const user = await this.UserModel.findById(userId).exec();
-
+  
     // If user not found, throw an error
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
+  
+    // Get the current date and time
+    const currentDate = new Date();
+  
     // Update the fields: increment compteurcig, decrease compteurargent and compteurpts
     user.compteurcig += 1; // Increment compteurcig by 1
     user.compteurargent -= user.prixcig; // Decrease compteurargent by the price of a cigarette
     user.compteurpts -= 5; // Decrease compteurpts by 5
-
+  
+    // Update the time_of_latest_cig with the current date and time
+    user.time_of_latest_cig = currentDate;
+  
+    // Add the current date and time to the time_for_all_cig array
+    user.time_for_all_cig.push(currentDate);
+  
     // Save the updated user
     await user.save();
-
+  
     return user;
   }
 
   async incrementTotalCig(userId: string): Promise<User | null> {
-    // Find the user by ID
-    const user = await this.UserModel.findById(userId).exec();
-
-    // If user not found, throw an error
-    if (!user) {
-      throw new NotFoundException('User not found');
+    try {
+      // Find the user by ID
+      const user = await this.UserModel.findById(userId).exec();
+  
+      // If user not found, throw an error
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+  
+      // Increment the totalcig field by 1
+      user.totalcig += 1;
+  
+      // Save the updated user
+      await user.save();
+  
+      return user;
+    } catch (error) {
+      // Handle any unexpected errors (e.g., database issues)
+      throw new Error(`Failed to increment total cigarettes: ${error.message}`);
     }
-
-    // Increment the totalcig field by 1
-    user.totalcig += 1;
-
-    // Save the updated user
-    await user.save();
-
-    return user;
   }
-
   async createPost(userId: string, postDto: { title: string; text: string }): Promise<Postt> {
     // Find the user by ID
     const user = await this.UserModel.findById(userId);
@@ -351,6 +364,123 @@ async getChallengesByEmail(email: string): Promise<Challenge[]> {
   }
 
   return user.challenges;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+private calculateSmokingPrediction(userData: {
+  current_time: string;
+  last_smoke_time: string;
+  historic_times: string[];
+}): {
+  next_30min_prob: number;
+  next_hour_prob: number;
+  risk_windows: any[];
+} {
+  const currentTime = new Date(userData.current_time);
+  const lastSmoke = new Date(userData.last_smoke_time);
+  const history = userData.historic_times.map((time) => new Date(time));
+
+  // Calculate time since last smoke in minutes
+  const minsSinceLast = (currentTime.getTime() - lastSmoke.getTime()) / 60000;
+
+  // Calculate average interval between smokes
+  let intervals: number[] = [];
+  for (let i = 1; i < history.length; i++) {
+    intervals.push((history[i].getTime() - history[i - 1].getTime()) / 60000);
+  }
+  const avgInterval = intervals.length
+    ? intervals.reduce((a, b) => a + b, 0) / intervals.length
+    : 120;
+
+  // Time-of-day pattern detection
+  let hourCounts: { [key: string]: number } = {};
+  history.forEach((time) => {
+    let hour = time.getHours().toString(); // Convert hour to string
+    hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+  });
+
+  // Find peak smoking hours
+  let peakHour = Object.keys(hourCounts).reduce((a, b) =>
+    hourCounts[a] > hourCounts[b] ? a : b,
+  );
+
+  // Rule-based predictions
+  let baseProb = Math.min(0.7 + minsSinceLast / avgInterval, 0.95);
+  let timeFactor = Math.exp(
+    -Math.abs(currentTime.getHours() - parseInt(peakHour, 10)), // Convert peakHour to number
+  );
+
+  // Generate risk window
+  let nextWindow = {
+    start: new Date(lastSmoke.getTime() + avgInterval * 0.8 * 60000)
+      .toTimeString()
+      .slice(0, 5),
+    end: new Date(lastSmoke.getTime() + avgInterval * 1.2 * 60000)
+      .toTimeString()
+      .slice(0, 5),
+    probability: Math.min(baseProb * timeFactor, 0.95),
+    triggers: ['historic_pattern'],
+  };
+
+  // Add common trigger times
+  let currentHour = currentTime.getHours();
+  if (currentHour >= 13 && currentHour < 15) {
+    nextWindow.triggers.push('post_lunch');
+  }
+  if ([10, 15].includes(currentHour)) {
+    nextWindow.triggers.push('work_break');
+  }
+
+  return {
+    next_30min_prob: nextWindow.probability * 0.85,
+    next_hour_prob: nextWindow.probability,
+    risk_windows: [nextWindow],
+  };
+}
+
+async predictSmokingTime(userId: string): Promise<{
+  next_30min_prob: number;
+  next_hour_prob: number;
+  risk_windows: any[];
+}> {
+  const user = await this.UserModel.findById(userId).exec();
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  const userData = {
+    current_time: new Date().toISOString(),
+    last_smoke_time: user.time_of_latest_cig?.toISOString() || new Date().toISOString(),
+    historic_times: user.time_for_all_cig.map((time) => time.toISOString()),
+  };
+
+  return this.calculateSmokingPrediction(userData);
 }
 
 }
